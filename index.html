@@ -1,925 +1,798 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TV Show Tracker</title>
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TV Show Tracker</title>
 
-        /* Gruvbox Color Palette */
-        :root {
-            --bg: #282828;
-            --bg-soft: #32302f;
-            --bg-hard: #1d2021;
-            --fg: #ebdbb2;
-            --fg-dim: #a89984;
-            --red: #fb4934;
-            --green: #b8bb26;
-            --yellow: #fabd2f;
-            --blue: #83a598;
-            --purple: #d3869b;
-            --aqua: #8ec07c;
-            --orange: #fe8019;
-            --gray: #928374;
-        }
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-        [data-theme="light"] {
-            --bg: #fbf1c7;
-            --bg-soft: #f2e5bc;
-            --bg-hard: #f9f5d7;
-            --fg: #3c3836;
-            --fg-dim: #665c54;
-            --red: #cc241d;
-            --green: #98971a;
-            --yellow: #d79921;
-            --blue: #458588;
-            --purple: #b16286;
-            --aqua: #689d6a;
-            --orange: #d65d0e;
-            --gray: #7c6f64;
-        }
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background-color: var(--bg);
-            color: var(--fg);
-            line-height: 1.6;
-            transition: background-color 0.3s, color 0.3s;
-        }
+    :root {
+      --bg: #282828;
+      --bg-soft: #32302f;
+      --bg-hard: #1d2021;
+      --fg: #ebdbb2;
+      --fg-dim: #a89984;
+      --red: #fb4934;
+      --green: #b8bb26;
+      --yellow: #fabd2f;
+      --blue: #83a598;
+      --purple: #d3869b;
+      --aqua: #8ec07c;
+      --orange: #fe8019;
+      --gray: #928374;
+    }
 
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 20px;
-        }
+    [data-theme="light"] {
+      --bg: #fbf1c7;
+      --bg-soft: #f2e5bc;
+      --bg-hard: #f9f5d7;
+      --fg: #3c3836;
+      --fg-dim: #665c54;
+      --red: #cc241d;
+      --green: #98971a;
+      --yellow: #d79921;
+      --blue: #458588;
+      --purple: #b16286;
+      --aqua: #689d6a;
+      --orange: #d65d0e;
+      --gray: #7c6f64;
+    }
 
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-            padding-bottom: 20px;
-            border-bottom: 2px solid var(--gray);
-        }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background-color: var(--bg);
+      color: var(--fg);
+      line-height: 1.6;
+      transition: background-color 0.3s, color 0.3s;
+    }
 
-        h1 {
-            color: var(--yellow);
-            font-size: 2rem;
-        }
+    .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
 
-        .theme-toggle {
-            background: var(--bg-soft);
-            border: 1px solid var(--gray);
-            color: var(--fg);
-            padding: 8px 16px;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+      padding-bottom: 20px;
+      border-bottom: 2px solid var(--gray);
+    }
 
-        .theme-toggle:hover {
-            background: var(--bg-hard);
-            border-color: var(--yellow);
-        }
+    h1 { color: var(--yellow); font-size: 2rem; }
 
-        .search-section {
-            background: var(--bg-soft);
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            border: 1px solid var(--gray);
-        }
+    .theme-toggle {
+      background: var(--bg-soft);
+      border: 1px solid var(--gray);
+      color: var(--fg);
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
 
-        .search-bar {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
+    .theme-toggle:hover {
+      background: var(--bg-hard);
+      border-color: var(--yellow);
+    }
 
-        input, select {
-            background: var(--bg);
-            border: 1px solid var(--gray);
-            color: var(--fg);
-            padding: 10px;
-            border-radius: 4px;
-            font-size: 14px;
-        }
+    .search-section {
+      background: var(--bg-soft);
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      border: 1px solid var(--gray);
+    }
 
-        input:focus, select:focus {
-            outline: none;
-            border-color: var(--blue);
-        }
+    .search-bar { display: flex; gap: 10px; margin-bottom: 15px; }
 
-        .search-input {
-            flex: 1;
-        }
+    input, select {
+      background: var(--bg);
+      border: 1px solid var(--gray);
+      color: var(--fg);
+      padding: 10px;
+      border-radius: 4px;
+      font-size: 14px;
+    }
 
-        button {
-            background: var(--blue);
-            color: var(--bg);
-            border: none;
-            padding: 10px 20px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.2s;
-        }
+    input:focus, select:focus { outline: none; border-color: var(--blue); }
 
-        button:hover {
-            background: var(--aqua);
-            transform: translateY(-1px);
-        }
+    .search-input { flex: 1; }
 
-        button:disabled {
-            background: var(--gray);
-            cursor: not-allowed;
-            transform: none;
-        }
+    button {
+      background: var(--blue);
+      color: var(--bg);
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
 
-        .search-results {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 15px;
-            max-height: 400px;
-            overflow-y: auto;
-        }
+    button:hover { background: var(--aqua); transform: translateY(-1px); }
 
-        .search-result-card {
-            background: var(--bg-hard);
-            border: 1px solid var(--gray);
-            border-radius: 4px;
-            padding: 10px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
+    button:disabled { background: var(--gray); cursor: not-allowed; transform: none; }
 
-        .search-result-card:hover {
-            border-color: var(--yellow);
-            transform: translateY(-2px);
-        }
+    .search-results {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 15px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
 
-        .search-result-card img {
-            width: 100%;
-            height: 250px;
-            object-fit: cover;
-            border-radius: 4px;
-            margin-bottom: 8px;
-        }
+    .search-result-card {
+      background: var(--bg-hard);
+      border: 1px solid var(--gray);
+      border-radius: 4px;
+      padding: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
 
-        .search-result-card h4 {
-            font-size: 14px;
-            margin-bottom: 4px;
-        }
+    .search-result-card:hover { border-color: var(--yellow); transform: translateY(-2px); }
 
-        .tabs {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
+    .search-result-card img {
+      width: 100%;
+      height: 250px;
+      object-fit: cover;
+      border-radius: 4px;
+      margin-bottom: 8px;
+    }
 
-        .tab {
-            background: var(--bg-soft);
-            border: 1px solid var(--gray);
-            color: var(--fg);
-            padding: 12px 24px;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
+    .search-result-card h4 { font-size: 14px; margin-bottom: 4px; }
 
-        .tab.active {
-            background: var(--blue);
-            color: var(--bg);
-            border-color: var(--blue);
-        }
+    .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
 
-        .tab:hover:not(.active) {
-            border-color: var(--yellow);
-        }
+    .tab {
+      background: var(--bg-soft);
+      border: 1px solid var(--gray);
+      color: var(--fg);
+      padding: 12px 24px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
 
-        .controls {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
+    .tab.active {
+      background: var(--blue);
+      color: var(--bg);
+      border-color: var(--blue);
+    }
 
-        .shows-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 20px;
-        }
+    .tab:hover:not(.active) { border-color: var(--yellow); }
 
-        .show-card {
-            background: var(--bg-soft);
-            border: 1px solid var(--gray);
-            border-radius: 8px;
-            padding: 15px;
-            transition: all 0.2s;
-        }
+    .controls { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
 
-        .show-card:hover {
-            border-color: var(--yellow);
-            transform: translateY(-2px);
-        }
+    .shows-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
+    }
 
-        .show-header {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 15px;
-        }
+    .show-card {
+      background: var(--bg-soft);
+      border: 1px solid var(--gray);
+      border-radius: 8px;
+      padding: 15px;
+      transition: all 0.2s;
+    }
 
-        .show-image {
-            width: 100px;
-            height: 140px;
-            object-fit: cover;
-            border-radius: 4px;
-        }
+    .show-card:hover { border-color: var(--yellow); transform: translateY(-2px); }
 
-        .show-info {
-            flex: 1;
-        }
+    .show-header { display: flex; gap: 15px; margin-bottom: 15px; }
 
-        .show-title {
-            color: var(--yellow);
-            font-size: 1.1rem;
-            margin-bottom: 5px;
-        }
+    .show-image { width: 100px; height: 140px; object-fit: cover; border-radius: 4px; }
 
-        .show-meta {
-            color: var(--fg-dim);
-            font-size: 0.85rem;
-            margin-bottom: 8px;
-        }
+    .show-info { flex: 1; }
 
-        .progress-section {
-            margin-top: 10px;
-        }
+    .show-title { color: var(--yellow); font-size: 1.1rem; margin-bottom: 5px; }
 
-        .progress-bar-container {
-            background: var(--bg-hard);
-            height: 20px;
-            border-radius: 10px;
-            overflow: hidden;
-            margin: 8px 0;
-        }
+    .show-meta { color: var(--fg-dim); font-size: 0.85rem; margin-bottom: 8px; }
 
-        .progress-bar {
-            background: linear-gradient(90deg, var(--green), var(--aqua));
-            height: 100%;
-            transition: width 0.3s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.75rem;
-            font-weight: 600;
-            color: var(--bg);
-        }
+    .progress-section { margin-top: 10px; }
 
-        .episode-controls {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            margin-top: 10px;
-        }
+    .progress-bar-container {
+      background: var(--bg-hard);
+      height: 20px;
+      border-radius: 10px;
+      overflow: hidden;
+      margin: 8px 0;
+    }
 
-        .episode-controls input {
-            width: 60px;
-            padding: 6px;
-        }
+    .progress-bar {
+      background: linear-gradient(90deg, var(--green), var(--aqua));
+      height: 100%;
+      transition: width 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--bg);
+    }
 
-        .small-btn {
-            padding: 6px 12px;
-            font-size: 0.85rem;
-        }
+    .episode-controls { display: flex; gap: 8px; align-items: center; margin-top: 10px; }
 
-        .delete-btn {
-            background: var(--red);
-        }
+    .episode-controls input { width: 60px; padding: 6px; }
 
-        .delete-btn:hover {
-            background: #cc241d;
-        }
+    .small-btn { padding: 6px 12px; font-size: 0.85rem; }
 
-        .source-link {
-            color: var(--blue);
-            text-decoration: none;
-            font-size: 0.9rem;
-            display: inline-block;
-            margin-top: 5px;
-        }
+    .delete-btn { background: var(--red); }
 
-        .source-link:hover {
-            color: var(--aqua);
-            text-decoration: underline;
-        }
+    .delete-btn:hover { background: #cc241d; }
 
-        .next-episode {
-            background: var(--bg-hard);
-            padding: 8px;
-            border-radius: 4px;
-            margin-top: 8px;
-            font-size: 0.85rem;
-            color: var(--fg-dim);
-        }
+    .source-link {
+      color: var(--blue);
+      text-decoration: none;
+      font-size: 0.9rem;
+      display: inline-block;
+      margin-top: 5px;
+    }
 
-        .next-episode strong {
-            color: var(--orange);
-        }
+    .source-link:hover { color: var(--aqua); text-decoration: underline; }
 
-        .modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.8);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-        }
+    .next-episode {
+      background: var(--bg-hard);
+      padding: 8px;
+      border-radius: 4px;
+      margin-top: 8px;
+      font-size: 0.85rem;
+      color: var(--fg-dim);
+    }
 
-        .modal-content {
-            background: var(--bg);
-            border: 2px solid var(--gray);
-            border-radius: 8px;
-            padding: 30px;
-            max-width: 500px;
-            width: 90%;
-        }
+    .next-episode strong { color: var(--orange); }
 
-        .modal-header {
-            margin-bottom: 20px;
-        }
+    .modal {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
 
-        .modal-header h3 {
-            color: var(--yellow);
-            margin-bottom: 10px;
-        }
+    .modal-content {
+      background: var(--bg);
+      border: 2px solid var(--gray);
+      border-radius: 8px;
+      padding: 30px;
+      max-width: 500px;
+      width: 90%;
+    }
 
-        .form-group {
-            margin-bottom: 15px;
-        }
+    .modal-header { margin-bottom: 20px; }
 
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            color: var(--fg-dim);
-            font-size: 0.9rem;
-        }
+    .modal-header h3 { color: var(--yellow); margin-bottom: 10px; }
 
-        .form-group input, .form-group select {
-            width: 100%;
-        }
+    .form-group { margin-bottom: 15px; }
 
-        .modal-actions {
-            display: flex;
-            gap: 10px;
-            justify-content: flex-end;
-            margin-top: 20px;
-        }
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      color: var(--fg-dim);
+      font-size: 0.9rem;
+    }
 
-        .cancel-btn {
-            background: var(--gray);
-        }
+    .form-group input, .form-group select { width: 100%; }
 
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: var(--fg-dim);
-        }
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 20px;
+    }
 
-        .empty-state h3 {
-            color: var(--yellow);
-            margin-bottom: 10px;
-        }
+    .cancel-btn { background: var(--gray); }
 
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: var(--fg-dim);
-        }
+    .empty-state { text-align: center; padding: 60px 20px; color: var(--fg-dim); }
 
-        /* Scrollbar styling */
-        ::-webkit-scrollbar {
-            width: 10px;
-        }
+    .empty-state h3 { color: var(--yellow); margin-bottom: 10px; }
 
-        ::-webkit-scrollbar-track {
-            background: var(--bg-hard);
-        }
+    .loading { text-align: center; padding: 40px; color: var(--fg-dim); }
 
-        ::-webkit-scrollbar-thumb {
-            background: var(--gray);
-            border-radius: 5px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--fg-dim);
-        }
-    </style>
+    ::-webkit-scrollbar { width: 10px; }
+    ::-webkit-scrollbar-track { background: var(--bg-hard); }
+    ::-webkit-scrollbar-thumb { background: var(--gray); border-radius: 5px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--fg-dim); }
+  </style>
 </head>
 <body>
-    <div id="root"></div>
+  <div id="root"></div>
 
-    <script type="text/babel">
-        const { useState, useEffect } = React;
+  <!-- If anything crashes, show it instead of a blank screen -->
+  <script>
+    window.addEventListener("error", (e) => {
+      document.body.innerHTML =
+        `<pre style="padding:16px;white-space:pre-wrap;font:14px/1.4 monospace">
+JS Error: ${e.message}
+${e.filename || ""}:${e.lineno || ""}:${e.colno || ""}
+</pre>`;
+    });
+    window.addEventListener("unhandledrejection", (e) => {
+      document.body.innerHTML =
+        `<pre style="padding:16px;white-space:pre-wrap;font:14px/1.4 monospace">
+Promise Rejection: ${String(e.reason)}
+</pre>`;
+    });
+  </script>
 
-        // IMPORTANT: Replace these with your Supabase credentials
-        const SUPABASE_URL = 'https://oszjxfffcbxrlwheywzh.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9zemp4ZmZmY2J4cmx3aGV5d3poIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU5MTE3MDYsImV4cCI6MjA4MTQ4NzcwNn0.EF1Wu5ljbnn9uydd89wP0VbZm0da8cvP5CJjjoj9NG0
- ';
+  <script type="text/babel">
+    const { useState, useEffect } = React;
 
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const SUPABASE_URL = "https://oszjxfffcbxrlwheywzh.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9zemp4ZmZmY2J4cmx3aGV5d3poIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU5MTE3MDYsImV4cCI6MjA4MTQ4NzcwNn0.EF1Wu5ljbnn9uydd89wP0VbZm0da8cvP5CJjjoj9NG0";
 
-        function App() {
-            const [theme, setTheme] = useState('dark');
-            const [shows, setShows] = useState([]);
-            const [activeTab, setActiveTab] = useState('in-progress');
-            const [searchQuery, setSearchQuery] = useState('');
-            const [searchResults, setSearchResults] = useState([]);
-            const [searching, setSearching] = useState(false);
-            const [selectedShow, setSelectedShow] = useState(null);
-            const [loading, setLoading] = useState(true);
-            const [sortBy, setSortBy] = useState('name');
-            const [filterQuery, setFilterQuery] = useState('');
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-            useEffect(() => {
-                document.documentElement.setAttribute('data-theme', theme);
-            }, [theme]);
+    function App() {
+      const [theme, setTheme] = useState("dark");
+      const [shows, setShows] = useState([]);
+      const [activeTab, setActiveTab] = useState("in-progress");
+      const [searchQuery, setSearchQuery] = useState("");
+      const [searchResults, setSearchResults] = useState([]);
+      const [searching, setSearching] = useState(false);
+      const [selectedShow, setSelectedShow] = useState(null);
+      const [loading, setLoading] = useState(true);
+      const [sortBy, setSortBy] = useState("name");
+      const [filterQuery, setFilterQuery] = useState("");
 
-            useEffect(() => {
-                loadShows();
-            }, []);
+      useEffect(() => {
+        document.documentElement.setAttribute("data-theme", theme);
+      }, [theme]);
 
-            const loadShows = async () => {
-                try {
-                    const { data, error } = await supabase
-                        .from('shows')
-                        .select('*');
-                    
-                    if (error) throw error;
-                    setShows(data || []);
-                } catch (error) {
-                    console.error('Error loading shows:', error);
-                    alert('Error loading shows. Check console and Supabase setup.');
-                } finally {
-                    setLoading(false);
-                }
-            };
+      useEffect(() => {
+        loadShows();
+      }, []);
 
-            const searchShows = async () => {
-                if (!searchQuery.trim()) return;
-                
-                setSearching(true);
-                try {
-                    const response = await fetch(`https://api.tvmaze.com/search/shows?q=${encodeURIComponent(searchQuery)}`);
-                    const data = await response.json();
-                    setSearchResults(data);
-                } catch (error) {
-                    console.error('Error searching shows:', error);
-                    alert('Error searching shows');
-                } finally {
-                    setSearching(false);
-                }
-            };
+      const loadShows = async () => {
+        try {
+          const { data, error } = await supabase.from("shows").select("*");
+          if (error) throw error;
+          setShows(data || []);
+        } catch (error) {
+          console.error("Error loading shows:", error);
+          alert("Error loading shows. Check console and Supabase setup.");
+        } finally {
+          setLoading(false);
+        }
+      };
 
-            const addShow = async (tvMazeShow) => {
-                const show = tvMazeShow.show;
-                const totalEpisodes = await getTotalEpisodes(show.id);
-                
-                const newShow = {
-                    tvmaze_id: show.id,
-                    name: show.name,
-                    image_url: show.image?.medium || show.image?.original || null,
-                    current_season: 1,
-                    current_episode: 0,
-                    total_episodes: totalEpisodes,
-                    status: 'not-started',
-                    source: '',
-                    premiered: show.premiered,
-                    genres: show.genres?.join(', ') || ''
-                };
+      const searchShows = async () => {
+        if (!searchQuery.trim()) return;
 
-                setSelectedShow(newShow);
-                setSearchResults([]);
-                setSearchQuery('');
-            };
+        setSearching(true);
+        try {
+          const response = await fetch(
+            `https://api.tvmaze.com/search/shows?q=${encodeURIComponent(searchQuery)}`
+          );
+          const data = await response.json();
+          setSearchResults(data);
+        } catch (error) {
+          console.error("Error searching shows:", error);
+          alert("Error searching shows");
+        } finally {
+          setSearching(false);
+        }
+      };
 
-            const getTotalEpisodes = async (showId) => {
-                try {
-                    const response = await fetch(`https://api.tvmaze.com/shows/${showId}/episodes`);
-                    const episodes = await response.json();
-                    return episodes.length;
-                } catch (error) {
-                    console.error('Error fetching episodes:', error);
-                    return 0;
-                }
-            };
+      const getTotalEpisodes = async (showId) => {
+        try {
+          const response = await fetch(`https://api.tvmaze.com/shows/${showId}/episodes`);
+          const episodes = await response.json();
+          return episodes.length;
+        } catch (error) {
+          console.error("Error fetching episodes:", error);
+          return 0;
+        }
+      };
 
-            const getNextEpisode = async (showId, currentSeason, currentEpisode) => {
-                try {
-                    const response = await fetch(`https://api.tvmaze.com/shows/${showId}/episodes`);
-                    const episodes = await response.json();
-                    
-                    const nextEpisode = episodes.find(ep => 
-                        ep.season > currentSeason || 
-                        (ep.season === currentSeason && ep.number > currentEpisode)
-                    );
-                    
-                    return nextEpisode;
-                } catch (error) {
-                    console.error('Error fetching next episode:', error);
-                    return null;
-                }
-            };
+      const addShow = async (tvMazeShow) => {
+        const show = tvMazeShow.show;
+        const totalEpisodes = await getTotalEpisodes(show.id);
 
-            const saveShow = async () => {
-                try {
-                    const { data, error } = await supabase
-                        .from('shows')
-                        .insert([selectedShow])
-                        .select();
-                    
-                    if (error) throw error;
-                    
-                    setShows([...shows, data[0]]);
-                    setSelectedShow(null);
-                } catch (error) {
-                    console.error('Error saving show:', error);
-                    alert('Error saving show: ' + error.message);
-                }
-            };
+        const newShow = {
+          tvmaze_id: show.id,
+          name: show.name,
+          image_url: show.image?.medium || show.image?.original || null,
+          current_season: 1,
+          current_episode: 0,
+          total_episodes: totalEpisodes,
+          status: "not-started",
+          source: "",
+          premiered: show.premiered,
+          genres: show.genres?.join(", ") || "",
+        };
 
-            const updateShow = async (showId, updates) => {
-                try {
-                    const { error } = await supabase
-                        .from('shows')
-                        .update(updates)
-                        .eq('id', showId);
-                    
-                    if (error) throw error;
-                    
-                    setShows(shows.map(show => 
-                        show.id === showId ? { ...show, ...updates } : show
-                    ));
-                } catch (error) {
-                    console.error('Error updating show:', error);
-                    alert('Error updating show');
-                }
-            };
+        setSelectedShow(newShow);
+        setSearchResults([]);
+        setSearchQuery("");
+      };
 
-            const deleteShow = async (showId) => {
-                if (!confirm('Are you sure you want to delete this show?')) return;
-                
-                try {
-                    const { error } = await supabase
-                        .from('shows')
-                        .delete()
-                        .eq('id', showId);
-                    
-                    if (error) throw error;
-                    
-                    setShows(shows.filter(show => show.id !== showId));
-                } catch (error) {
-                    console.error('Error deleting show:', error);
-                    alert('Error deleting show');
-                }
-            };
+      const getNextEpisode = async (showId, currentSeason, currentEpisode) => {
+        try {
+          const response = await fetch(`https://api.tvmaze.com/shows/${showId}/episodes`);
+          const episodes = await response.json();
 
-            const getFilteredAndSortedShows = () => {
-                let filtered = shows.filter(show => show.status === activeTab);
-                
-                if (filterQuery) {
-                    filtered = filtered.filter(show => 
-                        show.name.toLowerCase().includes(filterQuery.toLowerCase())
-                    );
-                }
-                
-                return filtered.sort((a, b) => {
-                    switch (sortBy) {
-                        case 'name':
-                            return a.name.localeCompare(b.name);
-                        case 'progress':
-                            const progressA = (a.current_episode / a.total_episodes) * 100;
-                            const progressB = (b.current_episode / b.total_episodes) * 100;
-                            return progressB - progressA;
-                        case 'recent':
-                            return new Date(b.updated_at) - new Date(a.updated_at);
-                        default:
-                            return 0;
-                    }
-                });
-            };
+          const nextEpisode = episodes.find(
+            (ep) =>
+              ep.season > currentSeason ||
+              (ep.season === currentSeason && ep.number > currentEpisode)
+          );
 
-            const calculateProgress = (current, total) => {
-                if (!total) return 0;
-                return Math.round((current / total) * 100);
-            };
+          return nextEpisode;
+        } catch (error) {
+          console.error("Error fetching next episode:", error);
+          return null;
+        }
+      };
 
-            const updateEpisodeProgress = async (show, newSeason, newEpisode) => {
-                const currentEpisodes = newEpisode + (newSeason - 1) * 20; // Approximate
-                let newStatus = show.status;
-                
-                if (currentEpisodes >= show.total_episodes) {
-                    newStatus = 'completed';
-                } else if (currentEpisodes > 0) {
-                    newStatus = 'in-progress';
-                }
-                
-                await updateShow(show.id, {
-                    current_season: newSeason,
-                    current_episode: newEpisode,
-                    status: newStatus
-                });
-            };
+      const saveShow = async () => {
+        try {
+          const { data, error } = await supabase.from("shows").insert([selectedShow]).select();
+          if (error) throw error;
 
-            if (loading) {
-                return (
-                    <div className="container">
-                        <div className="loading">Loading your shows...</div>
-                    </div>
-                );
+          setShows([...shows, data[0]]);
+          setSelectedShow(null);
+        } catch (error) {
+          console.error("Error saving show:", error);
+          alert("Error saving show: " + error.message);
+        }
+      };
+
+      const updateShow = async (showId, updates) => {
+        try {
+          const { error } = await supabase.from("shows").update(updates).eq("id", showId);
+          if (error) throw error;
+
+          setShows(shows.map((show) => (show.id === showId ? { ...show, ...updates } : show)));
+        } catch (error) {
+          console.error("Error updating show:", error);
+          alert("Error updating show");
+        }
+      };
+
+      const deleteShow = async (showId) => {
+        if (!confirm("Are you sure you want to delete this show?")) return;
+
+        try {
+          const { error } = await supabase.from("shows").delete().eq("id", showId);
+          if (error) throw error;
+
+          setShows(shows.filter((show) => show.id !== showId));
+        } catch (error) {
+          console.error("Error deleting show:", error);
+          alert("Error deleting show");
+        }
+      };
+
+      const getFilteredAndSortedShows = () => {
+        let filtered = shows.filter((show) => show.status === activeTab);
+
+        if (filterQuery) {
+          filtered = filtered.filter((show) =>
+            show.name.toLowerCase().includes(filterQuery.toLowerCase())
+          );
+        }
+
+        return filtered.sort((a, b) => {
+          switch (sortBy) {
+            case "name":
+              return a.name.localeCompare(b.name);
+            case "progress": {
+              const progressA = (a.current_episode / a.total_episodes) * 100;
+              const progressB = (b.current_episode / b.total_episodes) * 100;
+              return progressB - progressA;
             }
+            case "recent":
+              return new Date(b.updated_at) - new Date(a.updated_at);
+            default:
+              return 0;
+          }
+        });
+      };
 
-            return (
-                <div className="container">
-                    <header>
-                        <h1>📺 TV Show Tracker</h1>
-                        <button className="theme-toggle" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
-                            {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}
-                        </button>
-                    </header>
+      const calculateProgress = (current, total) => {
+        if (!total) return 0;
+        return Math.round((current / total) * 100);
+      };
 
-                    <div className="search-section">
-                        <div className="search-bar">
-                            <input
-                                type="text"
-                                className="search-input"
-                                placeholder="Search for a TV show to add..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                onKeyPress={(e) => e.key === 'Enter' && searchShows()}
-                            />
-                            <button onClick={searchShows} disabled={searching}>
-                                {searching ? 'Searching...' : 'Search'}
-                            </button>
-                        </div>
-                        
-                        {searchResults.length > 0 && (
-                            <div className="search-results">
-                                {searchResults.map(result => (
-                                    <div 
-                                        key={result.show.id} 
-                                        className="search-result-card"
-                                        onClick={() => addShow(result)}
-                                    >
-                                        <img 
-                                            src={result.show.image?.medium || result.show.image?.original || 'https://via.placeholder.com/200x280?text=No+Image'} 
-                                            alt={result.show.name}
-                                        />
-                                        <h4>{result.show.name}</h4>
-                                        <div className="show-meta">{result.show.premiered?.substring(0, 4)}</div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
+      const updateEpisodeProgress = async (show, newSeason, newEpisode) => {
+        const currentEpisodes = newEpisode + (newSeason - 1) * 20; // Approximate
+        let newStatus = show.status;
 
-                    <div className="tabs">
-                        <button 
-                            className={`tab ${activeTab === 'not-started' ? 'active' : ''}`}
-                            onClick={() => setActiveTab('not-started')}
-                        >
-                            Not Started ({shows.filter(s => s.status === 'not-started').length})
-                        </button>
-                        <button 
-                            className={`tab ${activeTab === 'in-progress' ? 'active' : ''}`}
-                            onClick={() => setActiveTab('in-progress')}
-                        >
-                            In Progress ({shows.filter(s => s.status === 'in-progress').length})
-                        </button>
-                        <button 
-                            className={`tab ${activeTab === 'completed' ? 'active' : ''}`}
-                            onClick={() => setActiveTab('completed')}
-                        >
-                            Completed ({shows.filter(s => s.status === 'completed').length})
-                        </button>
-                    </div>
+        if (currentEpisodes >= show.total_episodes) newStatus = "completed";
+        else if (currentEpisodes > 0) newStatus = "in-progress";
 
-                    <div className="controls">
-                        <input
-                            type="text"
-                            placeholder="Filter shows..."
-                            value={filterQuery}
-                            onChange={(e) => setFilterQuery(e.target.value)}
-                            style={{ flex: 1 }}
-                        />
-                        <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
-                            <option value="name">Sort by Name</option>
-                            <option value="progress">Sort by Progress</option>
-                            <option value="recent">Sort by Recent</option>
-                        </select>
-                    </div>
+        await updateShow(show.id, {
+          current_season: newSeason,
+          current_episode: newEpisode,
+          status: newStatus,
+        });
+      };
 
-                    <div className="shows-grid">
-                        {getFilteredAndSortedShows().map(show => (
-                            <ShowCard 
-                                key={show.id} 
-                                show={show}
-                                onUpdate={updateShow}
-                                onDelete={deleteShow}
-                                onUpdateProgress={updateEpisodeProgress}
-                                calculateProgress={calculateProgress}
-                                getNextEpisode={getNextEpisode}
-                            />
-                        ))}
-                    </div>
+      if (loading) {
+        return (
+          <div className="container">
+            <div className="loading">Loading your shows...</div>
+          </div>
+        );
+      }
 
-                    {getFilteredAndSortedShows().length === 0 && (
-                        <div className="empty-state">
-                            <h3>No shows here yet</h3>
-                            <p>Search and add some TV shows to get started!</p>
-                        </div>
-                    )}
+      return (
+        <div className="container">
+          <header>
+            <h1>📺 TV Show Tracker</h1>
+            <button
+              className="theme-toggle"
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            >
+              {theme === "dark" ? "☀️ Light" : "🌙 Dark"}
+            </button>
+          </header>
 
-                    {selectedShow && (
-                        <AddShowModal 
-                            show={selectedShow}
-                            onClose={() => setSelectedShow(null)}
-                            onSave={saveShow}
-                            onChange={setSelectedShow}
-                        />
-                    )}
-                </div>
-            );
-        }
+          <div className="search-section">
+            <div className="search-bar">
+              <input
+                type="text"
+                className="search-input"
+                placeholder="Search for a TV show to add..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && searchShows()}
+              />
+              <button onClick={searchShows} disabled={searching}>
+                {searching ? "Searching..." : "Search"}
+              </button>
+            </div>
 
-        function ShowCard({ show, onUpdate, onDelete, onUpdateProgress, calculateProgress, getNextEpisode }) {
-            const [nextEpisode, setNextEpisode] = useState(null);
-            const [tempSeason, setTempSeason] = useState(show.current_season);
-            const [tempEpisode, setTempEpisode] = useState(show.current_episode);
+            {searchResults.length > 0 && (
+              <div className="search-results">
+                {searchResults.map((result) => (
+                  <div
+                    key={result.show.id}
+                    className="search-result-card"
+                    onClick={() => addShow(result)}
+                  >
+                    <img
+                      src={
+                        result.show.image?.medium ||
+                        result.show.image?.original ||
+                        "https://via.placeholder.com/200x280?text=No+Image"
+                      }
+                      alt={result.show.name}
+                    />
+                    <h4>{result.show.name}</h4>
+                    <div className="show-meta">{result.show.premiered?.substring(0, 4)}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
-            useEffect(() => {
-                loadNextEpisode();
-            }, [show.current_season, show.current_episode]);
+          <div className="tabs">
+            <button
+              className={`tab ${activeTab === "not-started" ? "active" : ""}`}
+              onClick={() => setActiveTab("not-started")}
+            >
+              Not Started ({shows.filter((s) => s.status === "not-started").length})
+            </button>
+            <button
+              className={`tab ${activeTab === "in-progress" ? "active" : ""}`}
+              onClick={() => setActiveTab("in-progress")}
+            >
+              In Progress ({shows.filter((s) => s.status === "in-progress").length})
+            </button>
+            <button
+              className={`tab ${activeTab === "completed" ? "active" : ""}`}
+              onClick={() => setActiveTab("completed")}
+            >
+              Completed ({shows.filter((s) => s.status === "completed").length})
+            </button>
+          </div>
 
-            const loadNextEpisode = async () => {
-                const next = await getNextEpisode(show.tvmaze_id, show.current_season, show.current_episode);
-                setNextEpisode(next);
-            };
+          <div className="controls">
+            <input
+              type="text"
+              placeholder="Filter shows..."
+              value={filterQuery}
+              onChange={(e) => setFilterQuery(e.target.value)}
+              style={{ flex: 1 }}
+            />
+            <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+              <option value="name">Sort by Name</option>
+              <option value="progress">Sort by Progress</option>
+              <option value="recent">Sort by Recent</option>
+            </select>
+          </div>
 
-            const progress = calculateProgress(show.current_episode, show.total_episodes);
-            const episodesLeft = show.total_episodes - show.current_episode;
+          <div className="shows-grid">
+            {getFilteredAndSortedShows().map((show) => (
+              <ShowCard
+                key={show.id}
+                show={show}
+                onDelete={deleteShow}
+                onUpdateProgress={updateEpisodeProgress}
+                calculateProgress={calculateProgress}
+                getNextEpisode={getNextEpisode}
+              />
+            ))}
+          </div>
 
-            return (
-                <div className="show-card">
-                    <div className="show-header">
-                        <img 
-                            src={show.image_url || 'https://via.placeholder.com/100x140?text=No+Image'} 
-                            alt={show.name}
-                            className="show-image"
-                        />
-                        <div className="show-info">
-                            <h3 className="show-title">{show.name}</h3>
-                            <div className="show-meta">
-                                {show.genres && <div>🎭 {show.genres}</div>}
-                                {show.premiered && <div>📅 {show.premiered}</div>}
-                            </div>
-                            {show.source && (
-                                <a href={show.source} target="_blank" rel="noopener noreferrer" className="source-link">
-                                    🔗 Watch Source
-                                </a>
-                            )}
-                        </div>
-                    </div>
+          {getFilteredAndSortedShows().length === 0 && (
+            <div className="empty-state">
+              <h3>No shows here yet</h3>
+              <p>Search and add some TV shows to get started!</p>
+            </div>
+          )}
 
-                    <div className="progress-section">
-                        <div className="show-meta">
-                            S{show.current_season} E{show.current_episode} of {show.total_episodes} episodes
-                        </div>
-                        <div className="progress-bar-container">
-                            <div className="progress-bar" style={{ width: `${progress}%` }}>
-                                {progress > 10 && `${progress}%`}
-                            </div>
-                        </div>
-                        <div className="show-meta">
-                            {episodesLeft > 0 ? `${episodesLeft} episodes left` : 'All caught up!'}
-                        </div>
+          {selectedShow && (
+            <AddShowModal
+              show={selectedShow}
+              onClose={() => setSelectedShow(null)}
+              onSave={saveShow}
+              onChange={setSelectedShow}
+            />
+          )}
+        </div>
+      );
+    }
 
-                        {nextEpisode && (
-                            <div className="next-episode">
-                                <strong>Next:</strong> S{nextEpisode.season} E{nextEpisode.number} - {nextEpisode.name}
-                                {nextEpisode.airdate && ` (${nextEpisode.airdate})`}
-                            </div>
-                        )}
+    function ShowCard({ show, onDelete, onUpdateProgress, calculateProgress, getNextEpisode }) {
+      const [nextEpisode, setNextEpisode] = useState(null);
+      const [tempSeason, setTempSeason] = useState(show.current_season);
+      const [tempEpisode, setTempEpisode] = useState(show.current_episode);
 
-                        <div className="episode-controls">
-                            <span>S</span>
-                            <input 
-                                type="number" 
-                                min="1" 
-                                value={tempSeason}
-                                onChange={(e) => setTempSeason(parseInt(e.target.value) || 1)}
-                            />
-                            <span>E</span>
-                            <input 
-                                type="number" 
-                                min="0" 
-                                value={tempEpisode}
-                                onChange={(e) => setTempEpisode(parseInt(e.target.value) || 0)}
-                            />
-                            <button 
-                                className="small-btn"
-                                onClick={() => onUpdateProgress(show, tempSeason, tempEpisode)}
-                            >
-                                Update
-                            </button>
-                            <button 
-                                className="small-btn delete-btn"
-                                onClick={() => onDelete(show.id)}
-                            >
-                                Delete
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            );
-        }
+      useEffect(() => {
+        loadNextEpisode();
+      }, [show.current_season, show.current_episode]);
 
-        function AddShowModal({ show, onClose, onSave, onChange }) {
-            return (
-                <div className="modal" onClick={onClose}>
-                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                        <div className="modal-header">
-                            <h3>Add Show: {show.name}</h3>
-                            <p style={{ color: 'var(--fg-dim)', fontSize: '0.9rem' }}>
-                                Total Episodes: {show.total_episodes}
-                            </p>
-                        </div>
+      const loadNextEpisode = async () => {
+        const next = await getNextEpisode(show.tvmaze_id, show.current_season, show.current_episode);
+        setNextEpisode(next);
+      };
 
-                        <div className="form-group">
-                            <label>Starting Season</label>
-                            <input 
-                                type="number" 
-                                min="1"
-                                value={show.current_season}
-                                onChange={(e) => onChange({ ...show, current_season: parseInt(e.target.value) || 1 })}
-                            />
-                        </div>
+      const progress = calculateProgress(show.current_episode, show.total_episodes);
+      const episodesLeft = show.total_episodes - show.current_episode;
 
-                        <div className="form-group">
-                            <label>Starting Episode</label>
-                            <input 
-                                type="number" 
-                                min="0"
-                                value={show.current_episode}
-                                onChange={(e) => onChange({ ...show, current_episode: parseInt(e.target.value) || 0 })}
-                            />
-                        </div>
+      return (
+        <div className="show-card">
+          <div className="show-header">
+            <img
+              src={show.image_url || "https://via.placeholder.com/100x140?text=No+Image"}
+              alt={show.name}
+              className="show-image"
+            />
+            <div className="show-info">
+              <h3 className="show-title">{show.name}</h3>
+              <div className="show-meta">
+                {show.genres && <div>🎭 {show.genres}</div>}
+                {show.premiered && <div>📅 {show.premiered}</div>}
+              </div>
+              {show.source && (
+                <a href={show.source} target="_blank" rel="noopener noreferrer" className="source-link">
+                  🔗 Watch Source
+                </a>
+              )}
+            </div>
+          </div>
 
-                        <div className="form-group">
-                            <label>Watch Source (URL or Platform name)</label>
-                            <input 
-                                type="text"
-                                placeholder="e.g., Netflix or https://streaming.site.com"
-                                value={show.source}
-                                onChange={(e) => onChange({ ...show, source: e.target.value })}
-                            />
-                        </div>
+          <div className="progress-section">
+            <div className="show-meta">
+              S{show.current_season} E{show.current_episode} of {show.total_episodes} episodes
+            </div>
+            <div className="progress-bar-container">
+              <div className="progress-bar" style={{ width: `${progress}%` }}>
+                {progress > 10 && `${progress}%`}
+              </div>
+            </div>
+            <div className="show-meta">
+              {episodesLeft > 0 ? `${episodesLeft} episodes left` : "All caught up!"}
+            </div>
 
-                        <div className="form-group">
-                            <label>Status</label>
-                            <select 
-                                value={show.status}
-                                onChange={(e) => onChange({ ...show, status: e.target.value })}
-                            >
-                                <option value="not-started">Not Started</option>
-                                <option value="in-progress">In Progress</option>
-                                <option value="completed">Completed</option>
-                            </select>
-                        </div>
+            {nextEpisode && (
+              <div className="next-episode">
+                <strong>Next:</strong> S{nextEpisode.season} E{nextEpisode.number} - {nextEpisode.name}
+                {nextEpisode.airdate && ` (${nextEpisode.airdate})`}
+              </div>
+            )}
 
-                        <div className="modal-actions">
-                            <button className="cancel-btn" onClick={onClose}>Cancel</button>
-                            <button onClick={onSave}>Add Show</button>
-                        </div>
-                    </div>
-                </div>
-            );
-        }
+            <div className="episode-controls">
+              <span>S</span>
+              <input
+                type="number"
+                min="1"
+                value={tempSeason}
+                onChange={(e) => setTempSeason(parseInt(e.target.value) || 1)}
+              />
+              <span>E</span>
+              <input
+                type="number"
+                min="0"
+                value={tempEpisode}
+                onChange={(e) => setTempEpisode(parseInt(e.target.value) || 0)}
+              />
+              <button className="small-btn" onClick={() => onUpdateProgress(show, tempSeason, tempEpisode)}>
+                Update
+              </button>
+              <button className="small-btn delete-btn" onClick={() => onDelete(show.id)}>
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
 
-        ReactDOM.render(<App />, document.getElementById('root'));
-    </script>
+    function AddShowModal({ show, onClose, onSave, onChange }) {
+      return (
+        <div className="modal" onClick={onClose}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Add Show: {show.name}</h3>
+              <p style={{ color: "var(--fg-dim)", fontSize: "0.9rem" }}>
+                Total Episodes: {show.total_episodes}
+              </p>
+            </div>
+
+            <div className="form-group">
+              <label>Starting Season</label>
+              <input
+                type="number"
+                min="1"
+                value={show.current_season}
+                onChange={(e) => onChange({ ...show, current_season: parseInt(e.target.value) || 1 })}
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Starting Episode</label>
+              <input
+                type="number"
+                min="0"
+                value={show.current_episode}
+                onChange={(e) => onChange({ ...show, current_episode: parseInt(e.target.value) || 0 })}
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Watch Source (URL or Platform name)</label>
+              <input
+                type="text"
+                placeholder="e.g., Netflix or https://streaming.site.com"
+                value={show.source}
+                onChange={(e) => onChange({ ...show, source: e.target.value })}
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Status</label>
+              <select value={show.status} onChange={(e) => onChange({ ...show, status: e.target.value })}>
+                <option value="not-started">Not Started</option>
+                <option value="in-progress">In Progress</option>
+                <option value="completed">Completed</option>
+              </select>
+            </div>
+
+            <div className="modal-actions">
+              <button className="cancel-btn" onClick={onClose}>Cancel</button>
+              <button onClick={onSave}>Add Show</button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // React 18 mount
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(<App />);
+  </script>
 </body>
 </html>
