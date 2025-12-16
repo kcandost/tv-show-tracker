@@ -120,6 +120,11 @@
       const [sbKey, setSbKey] = useState(localStorage.getItem(LS_KEY) || "");
       const hasCreds = !!(sbUrl && sbKey);
 
+      // Setup UX improvements
+      const [showKey, setShowKey] = useState(false);
+      const [testing, setTesting] = useState(false);
+      const [testMsg, setTestMsg] = useState("");
+
       // Supabase client + auth
       const [supabase, setSupabase] = useState(null);
       const [session, setSession] = useState(null);
@@ -208,8 +213,8 @@
         if (!u || !k) return;
         localStorage.setItem(LS_URL, u);
         localStorage.setItem(LS_KEY, k);
-        // re-trigger init via state already; just ensure values are trimmed
         setSbUrl(u); setSbKey(k);
+        setTestMsg("");
       }
 
       function resetSetup() {
@@ -221,6 +226,28 @@
         setShows([]);
         setResults([]);
         setDraft(null);
+        setTestMsg("");
+        setShowKey(false);
+      }
+
+      async function testConnection() {
+        setTesting(true);
+        setTestMsg("");
+        try {
+          const u = sbUrl.trim();
+          const k = sbKey.trim();
+          if (!u || !k) throw new Error("Please paste both the Project URL and anon key.");
+          const client = makeClient(u, k);
+
+          const { error } = await client.from("shows").select("id").limit(1);
+          if (error) throw error;
+
+          setTestMsg("Connection looks good.");
+        } catch (e) {
+          setTestMsg(`Could not connect: ${e.message || String(e)}`);
+        } finally {
+          setTesting(false);
+        }
       }
 
       async function signInWithGitHub() {
@@ -291,26 +318,90 @@
       if (!hasCreds) {
         return (
           <div className="wrap">
-            <Header theme={theme} setTheme={setTheme} right={<button className="btn ghost" onClick={resetSetup}>Reset</button>} />
+            <Header
+              theme={theme}
+              setTheme={setTheme}
+              right={<button className="btn ghost" onClick={resetSetup}>Start over</button>}
+            />
+
             <div className="card">
-              <div style={{fontWeight:900,marginBottom:6}}>Setup (one-time)</div>
-              <div className="muted" style={{marginBottom:12}}>
-                Paste <b>your own</b> Supabase Project URL + anon key. This keeps data private per user.
+              <div style={{ fontWeight: 900, marginBottom: 6 }}>Connect your Supabase (one-time)</div>
+              <div className="muted" style={{ marginBottom: 12 }}>
+                This app is static (GitHub Pages). Your shows are stored in <b>your</b> Supabase project and protected by
+                GitHub login + Row Level Security.
+              </div>
+
+              <div className="pill muted" style={{ marginBottom: 12, fontSize: 13 }}>
+                <div style={{ marginBottom: 6, fontWeight: 800, color: "var(--yellow)" }}>Quick steps</div>
+                <div>1) Supabase Project Settings → API → copy Project URL + anon key</div>
+                <div>2) Paste them below and click Save</div>
+                <div>3) Sign in with GitHub to access your private list</div>
               </div>
 
               <label>Supabase Project URL</label>
-              <input className="grow" value={sbUrl} onChange={(e)=>setSbUrl(e.target.value)} placeholder="https://xxxx.supabase.co" />
-
-              <label>Supabase anon public key</label>
-              <textarea rows="3" value={sbKey} onChange={(e)=>setSbKey(e.target.value)} placeholder="eyJhbGciOi..." />
-
-              <div className="row" style={{justifyContent:"flex-end",marginTop:12}}>
-                <button className="btn ghost" onClick={()=>{ setSbUrl(""); setSbKey(""); }}>Clear</button>
-                <button className="btn" onClick={saveSetup} disabled={!sbUrl.trim() || !sbKey.trim()}>Save</button>
+              <input
+                className="grow"
+                value={sbUrl}
+                onChange={(e) => setSbUrl(e.target.value)}
+                placeholder="Example: https://abcdxyz.supabase.co"
+                spellCheck="false"
+              />
+              <div className="muted" style={{ fontSize: 13, marginTop: 6 }}>
+                Find it in Supabase: Project Settings → API → Project URL
               </div>
 
-              <div className="muted" style={{marginTop:12,fontSize:13}}>
-                You can reset later (clears localStorage on this device).
+              <label style={{ marginTop: 12 }}>Supabase anon public key</label>
+              <div className="row" style={{ alignItems: "stretch" }}>
+                <textarea
+                  className="grow"
+                  rows="3"
+                  value={sbKey}
+                  onChange={(e) => setSbKey(e.target.value)}
+                  placeholder="Starts with: eyJhbGciOi..."
+                  spellCheck="false"
+                  style={showKey ? {} : { WebkitTextSecurity: "disc" }}
+                />
+                <button className="btn ghost" onClick={() => setShowKey(v => !v)} style={{ whiteSpace: "nowrap" }}>
+                  {showKey ? "Hide key" : "Show key"}
+                </button>
+              </div>
+              <div className="muted" style={{ fontSize: 13, marginTop: 6 }}>
+                This is safe to use in frontend apps. Privacy comes from RLS + login, not from hiding this key.
+              </div>
+
+              {testMsg && (
+                <div className="pill muted" style={{ marginTop: 12, fontSize: 13 }}>
+                  {testMsg}
+                </div>
+              )}
+
+              <div className="row" style={{ justifyContent: "flex-end", marginTop: 12 }}>
+                <button
+                  className="btn ghost"
+                  onClick={() => { setSbUrl(""); setSbKey(""); setTestMsg(""); }}
+                >
+                  Clear
+                </button>
+
+                <button
+                  className="btn ghost"
+                  onClick={testConnection}
+                  disabled={!sbUrl.trim() || !sbKey.trim() || testing}
+                >
+                  {testing ? "Testing…" : "Test connection"}
+                </button>
+
+                <button
+                  className="btn"
+                  onClick={saveSetup}
+                  disabled={!sbUrl.trim() || !sbKey.trim()}
+                >
+                  Save
+                </button>
+              </div>
+
+              <div className="muted" style={{ marginTop: 12, fontSize: 13 }}>
+                Stored only in this browser (localStorage). Use “Start over” if you want to switch projects or clear it.
               </div>
             </div>
           </div>
@@ -320,10 +411,10 @@
       if (!supabase) {
         return (
           <div className="wrap">
-            <Header theme={theme} setTheme={setTheme} right={<button className="btn ghost" onClick={resetSetup}>Reset</button>} />
+            <Header theme={theme} setTheme={setTheme} right={<button className="btn ghost" onClick={resetSetup}>Start over</button>} />
             <div className="card">
               <div style={{fontWeight:900,marginBottom:6}}>Supabase not initialized</div>
-              <div className="muted">Your saved credentials may be invalid. Click Reset and enter them again.</div>
+              <div className="muted">Your saved credentials may be invalid. Click Start over and enter them again.</div>
             </div>
           </div>
         );
@@ -332,7 +423,7 @@
       if (authLoading) {
         return (
           <div className="wrap">
-            <Header theme={theme} setTheme={setTheme} right={<button className="btn ghost" onClick={resetSetup}>Reset</button>} />
+            <Header theme={theme} setTheme={setTheme} right={<button className="btn ghost" onClick={resetSetup}>Change Supabase</button>} />
             <div className="empty">Checking login…</div>
           </div>
         );
@@ -351,7 +442,7 @@
             <div className="card">
               <div style={{fontWeight:900,marginBottom:6}}>Sign in</div>
               <div className="muted" style={{marginBottom:12}}>
-                Sign in with GitHub to access your private shows (RLS owner-only).
+                Sign in with GitHub to access your private shows (enforced by Supabase RLS).
               </div>
               <button className="btn" onClick={signInWithGitHub}>Sign in with GitHub</button>
             </div>
@@ -449,10 +540,10 @@
     function Header({ theme, setTheme, right }) {
       return (
         <header>
-          <h1>📺 TV Show Tracker</h1>
+          <h1>TV Show Tracker</h1>
           <div className="row">
             <button className="btn ghost" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
-              {theme === "dark" ? "☀️ Light" : "🌙 Dark"}
+              {theme === "dark" ? "Light" : "Dark"}
             </button>
             {right}
           </div>
@@ -502,11 +593,11 @@
             <div className="grow">
               <h3 className="title">{show.name}</h3>
               <div className="muted" style={{fontSize:13}}>
-                {show.genres ? <div>🎭 {show.genres}</div> : null}
-                {show.premiered ? <div>📅 {show.premiered}</div> : null}
+                {show.genres ? <div>{show.genres}</div> : null}
+                {show.premiered ? <div>{show.premiered}</div> : null}
               </div>
               {show.source ? (
-                <a className="muted" style={{fontSize:13}} href={show.source} target="_blank" rel="noopener noreferrer">🔗 Watch Source</a>
+                <a className="muted" style={{fontSize:13}} href={show.source} target="_blank" rel="noopener noreferrer">Watch source</a>
               ) : null}
             </div>
           </div>
@@ -550,7 +641,7 @@
                 <div style={{color:"var(--yellow)",fontWeight:900,fontSize:"1.15rem"}}>Add: {show.name}</div>
                 <div className="muted" style={{fontSize:13}}>Total Episodes: {show.total_episodes || 0}</div>
               </div>
-              <button className="btn ghost" style={{padding:"8px 12px"}} onClick={onClose}>✕</button>
+              <button className="btn ghost" style={{padding:"8px 12px"}} onClick={onClose}>Close</button>
             </div>
 
             <label>Starting Season</label>
