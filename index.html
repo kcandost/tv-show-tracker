@@ -81,7 +81,6 @@
   <script type="text/babel">
     const { useEffect, useMemo, useState } = React;
 
-    // ---- LocalStorage keys for per-user setup (keeps your personal Supabase out of the public repo)
     const LS_URL = "tvtracker_supabase_url";
     const LS_KEY = "tvtracker_supabase_anon_key";
 
@@ -92,12 +91,24 @@
     ];
 
     const pct = (cur, total) => (!total ? 0 : Math.max(0, Math.min(100, Math.round((cur / total) * 100))));
-
     const redirectTo = window.location.origin + window.location.pathname;
 
     function makeClient(url, key) {
       if (!window.supabase) throw new Error("Supabase UMD not loaded (window.supabase missing).");
       return window.supabase.createClient(url, key);
+    }
+
+    async function handleOAuthRedirect(supabase) {
+      const url = new URL(window.location.href);
+      const code = url.searchParams.get("code");
+      if (!code) return;
+
+      const { error } = await supabase.auth.exchangeCodeForSession(window.location.href);
+      if (error) throw error;
+
+      url.searchParams.delete("code");
+      url.searchParams.delete("state");
+      window.history.replaceState({}, document.title, url.toString());
     }
 
     async function tvmazeSearch(q) {
@@ -115,17 +126,22 @@
     function App() {
       const [theme, setTheme] = useState("dark");
 
-      // Setup
+      // Saved credentials (actual)
       const [sbUrl, setSbUrl] = useState(localStorage.getItem(LS_URL) || "");
       const [sbKey, setSbKey] = useState(localStorage.getItem(LS_KEY) || "");
+
+      // Draft credentials (form inputs) - decoupled from saved
+      const [draftUrl, setDraftUrl] = useState(sbUrl);
+      const [draftKey, setDraftKey] = useState(sbKey);
+
       const hasCreds = !!(sbUrl && sbKey);
 
-      // Setup UX improvements
+      // Setup UX
       const [showKey, setShowKey] = useState(false);
       const [testing, setTesting] = useState(false);
       const [testMsg, setTestMsg] = useState("");
 
-      // Supabase client + auth
+      // Supabase + auth
       const [supabase, setSupabase] = useState(null);
       const [session, setSession] = useState(null);
       const [authLoading, setAuthLoading] = useState(false);
@@ -146,13 +162,17 @@
 
       useEffect(() => document.documentElement.setAttribute("data-theme", theme), [theme]);
 
-      // Initialize Supabase client when creds exist
+      // Initialize Supabase client only from SAVED creds (not from what user is typing)
       useEffect(() => {
         if (!hasCreds) { setSupabase(null); setSession(null); return; }
-        setSupabase(makeClient(sbUrl.trim(), sbKey.trim()));
+        const client = makeClient(sbUrl.trim(), sbKey.trim());
+        setSupabase(client);
+
+        // Critical: exchange OAuth code for a stored session
+        handleOAuthRedirect(client).catch(console.error);
       }, [hasCreds, sbUrl, sbKey]);
 
-      // Auth session subscription
+      // Auth subscription
       useEffect(() => {
         if (!supabase) return;
         let sub;
@@ -208,12 +228,19 @@
         return out;
       }, [shows, activeTab, filter, sortBy]);
 
+      function clearDraft() {
+        setDraftUrl("");
+        setDraftKey("");
+        setTestMsg("");
+      }
+
       async function saveSetup() {
-        const u = sbUrl.trim(), k = sbKey.trim();
+        const u = draftUrl.trim(), k = draftKey.trim();
         if (!u || !k) return;
         localStorage.setItem(LS_URL, u);
         localStorage.setItem(LS_KEY, k);
-        setSbUrl(u); setSbKey(k);
+        setSbUrl(u);
+        setSbKey(k);
         setTestMsg("");
       }
 
@@ -221,6 +248,7 @@
         localStorage.removeItem(LS_URL);
         localStorage.removeItem(LS_KEY);
         setSbUrl(""); setSbKey("");
+        setDraftUrl(""); setDraftKey("");
         setSupabase(null);
         setSession(null);
         setShows([]);
@@ -234,8 +262,8 @@
         setTesting(true);
         setTestMsg("");
         try {
-          const u = sbUrl.trim();
-          const k = sbKey.trim();
+          const u = draftUrl.trim();
+          const k = draftKey.trim();
           if (!u || !k) throw new Error("Please paste both the Project URL and anon key.");
           const client = makeClient(u, k);
 
@@ -318,11 +346,7 @@
       if (!hasCreds) {
         return (
           <div className="wrap">
-            <Header
-              theme={theme}
-              setTheme={setTheme}
-              right={<button className="btn ghost" onClick={resetSetup}>Start over</button>}
-            />
+            <Header theme={theme} setTheme={setTheme} right={<button className="btn ghost" onClick={resetSetup}>Start over</button>} />
 
             <div className="card">
               <div style={{ fontWeight: 900, marginBottom: 6 }}>Connect your Supabase (one-time)</div>
@@ -341,8 +365,8 @@
               <label>Supabase Project URL</label>
               <input
                 className="grow"
-                value={sbUrl}
-                onChange={(e) => setSbUrl(e.target.value)}
+                value={draftUrl}
+                onChange={(e) => setDraftUrl(e.target.value)}
                 placeholder="Example: https://abcdxyz.supabase.co"
                 spellCheck="false"
               />
@@ -355,8 +379,8 @@
                 <textarea
                   className="grow"
                   rows="3"
-                  value={sbKey}
-                  onChange={(e) => setSbKey(e.target.value)}
+                  value={draftKey}
+                  onChange={(e) => setDraftKey(e.target.value)}
                   placeholder="Starts with: eyJhbGciOi..."
                   spellCheck="false"
                   style={showKey ? {} : { WebkitTextSecurity: "disc" }}
@@ -366,7 +390,7 @@
                 </button>
               </div>
               <div className="muted" style={{ fontSize: 13, marginTop: 6 }}>
-                This is safe to use in frontend apps. Privacy comes from RLS + login, not from hiding this key.
+                This key is meant to be used in frontend apps. Privacy comes from RLS + login, not from hiding the key.
               </div>
 
               {testMsg && (
@@ -376,17 +400,12 @@
               )}
 
               <div className="row" style={{ justifyContent: "flex-end", marginTop: 12 }}>
-                <button
-                  className="btn ghost"
-                  onClick={() => { setSbUrl(""); setSbKey(""); setTestMsg(""); }}
-                >
-                  Clear
-                </button>
+                <button className="btn ghost" onClick={clearDraft}>Clear</button>
 
                 <button
                   className="btn ghost"
                   onClick={testConnection}
-                  disabled={!sbUrl.trim() || !sbKey.trim() || testing}
+                  disabled={!draftUrl.trim() || !draftKey.trim() || testing}
                 >
                   {testing ? "Testing…" : "Test connection"}
                 </button>
@@ -394,14 +413,14 @@
                 <button
                   className="btn"
                   onClick={saveSetup}
-                  disabled={!sbUrl.trim() || !sbKey.trim()}
+                  disabled={!draftUrl.trim() || !draftKey.trim()}
                 >
                   Save
                 </button>
               </div>
 
               <div className="muted" style={{ marginTop: 12, fontSize: 13 }}>
-                Stored only in this browser (localStorage). Use “Start over” if you want to switch projects or clear it.
+                Saved only in this browser (localStorage). Use “Start over” if you want to switch projects or clear it.
               </div>
             </div>
           </div>
@@ -440,9 +459,9 @@
               </div>}
             />
             <div className="card">
-              <div style={{fontWeight:900,marginBottom:6}}>Sign in</div>
+              <div style={{fontWeight:900,marginBottom:6}}>Sign in to your private tracker</div>
               <div className="muted" style={{marginBottom:12}}>
-                Sign in with GitHub to access your private shows (enforced by Supabase RLS).
+                Your data is private to your GitHub account (enforced by Supabase RLS).
               </div>
               <button className="btn" onClick={signInWithGitHub}>Sign in with GitHub</button>
             </div>
@@ -574,7 +593,6 @@
       const left = Math.max(0, (show.total_episodes || 0) - (show.current_episode || 0));
 
       async function applyProgress() {
-        // MVP approximation: map (season,episode) -> watched count using 20 eps/season
         const s = Math.max(1, season || 1);
         const e = Math.max(0, ep || 0);
         const approxWatched = e + (s - 1) * 20;
@@ -672,7 +690,6 @@
       );
     }
 
-    // ✅ Correct React 18 mount (no ReactDOMClient)
     const root = ReactDOM.createRoot(document.getElementById("root"));
     root.render(<App />);
   </script>
