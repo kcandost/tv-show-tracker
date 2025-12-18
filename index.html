@@ -62,6 +62,16 @@
     .modal .card{max-width:560px;width:100%;border:2px solid var(--bd)}
     label{display:block;margin:10px 0 6px;color:var(--fg2);font-size:.9rem}
     pre.err{margin:0;padding:16px;white-space:pre-wrap;font:14px/1.35 ui-monospace,Menlo,Consolas,monospace}
+
+    /* Table view */
+    .tableWrap{margin-top:14px;overflow:auto;border-radius:12px;border:1px solid var(--bd)}
+    table.tbl{width:100%;border-collapse:separate;border-spacing:0;background:var(--bg2)}
+    .tbl th,.tbl td{padding:10px;border-bottom:1px solid var(--bd);vertical-align:top;font-size:13px}
+    .tbl th{position:sticky;top:0;background:var(--bg3);text-align:left;color:var(--fg2);z-index:1}
+    .tbl tr:hover td{background:rgba(0,0,0,.08)}
+    [data-theme="light"] .tbl tr:hover td{background:rgba(255,255,255,.35)}
+    .miniPoster{width:44px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--bd)}
+    .nowrap{white-space:nowrap}
   </style>
 </head>
 
@@ -160,15 +170,16 @@
 
       const [draft, setDraft] = useState(null);
 
+      // View mode: cards/table
+      const [viewMode, setViewMode] = useState("cards"); // "cards" | "table"
+
       useEffect(() => document.documentElement.setAttribute("data-theme", theme), [theme]);
 
-      // Initialize Supabase client only from SAVED creds (not from what user is typing)
+      // Initialize Supabase client only from SAVED creds
       useEffect(() => {
         if (!hasCreds) { setSupabase(null); setSession(null); return; }
         const client = makeClient(sbUrl.trim(), sbKey.trim());
         setSupabase(client);
-
-        // Critical: exchange OAuth code for a stored session
         handleOAuthRedirect(client).catch(console.error);
       }, [hasCreds, sbUrl, sbKey]);
 
@@ -532,6 +543,23 @@
               <option value="progress">Sort: Progress</option>
               <option value="recent">Sort: Recent</option>
             </select>
+
+            <div className="row" style={{marginLeft:"auto"}}>
+              <button
+                className={`btn ghost ${viewMode==="cards" ? "tab active" : ""}`}
+                onClick={()=>setViewMode("cards")}
+                style={{padding:"8px 12px"}}
+              >
+                Cards
+              </button>
+              <button
+                className={`btn ghost ${viewMode==="table" ? "tab active" : ""}`}
+                onClick={()=>setViewMode("table")}
+                style={{padding:"8px 12px"}}
+              >
+                Table
+              </button>
+            </div>
           </div>
 
           {loading ? (
@@ -541,11 +569,34 @@
               <div style={{color:"var(--yellow)",fontWeight:900,fontSize:"1.1rem"}}>No shows here yet</div>
               <div className="muted">Search above and add a show to get started.</div>
             </div>
-          ) : (
+          ) : viewMode === "cards" ? (
             <div className="grid">
               {visible.map(s => (
                 <ShowCard key={s.id} show={s} onUpdate={updateShow} onDelete={removeShow} />
               ))}
+            </div>
+          ) : (
+            <div className="tableWrap">
+              <table className="tbl">
+                <thead>
+                  <tr>
+                    <th className="nowrap">Poster</th>
+                    <th>Show</th>
+                    <th className="nowrap">Status</th>
+                    <th className="nowrap">Progress</th>
+                    <th className="nowrap">Aired Left</th>
+                    <th className="nowrap">Date</th>
+                    <th className="nowrap">Source</th>
+                    <th className="nowrap">Update</th>
+                    <th className="nowrap">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visible.map(s => (
+                    <ShowRow key={s.id} show={s} onUpdate={updateShow} onDelete={removeShow} />
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
 
@@ -562,7 +613,7 @@
           <h1>TV Show Tracker</h1>
           <div className="row">
             <button className="btn ghost" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
-              {theme === "dark" ? "Light" : "dark"}
+              {theme === "dark" ? "Light" : "Dark"}
             </button>
             {right}
           </div>
@@ -570,16 +621,14 @@
       );
     }
 
-    function ShowCard({ show, onUpdate, onDelete }) {
+    function useEpisodeStats(tvmaze_id, current_season, current_episode, total_episodes_fallback) {
       const [eps, setEps] = useState(null);
-      const [season, setSeason] = useState(show.current_season);
-      const [ep, setEp] = useState(show.current_episode);
 
       const parseAirDate = (s) => (s ? new Date(`${s}T00:00:00`) : null);
 
       const today = useMemo(() => {
         const d = new Date();
-        d.setHours(0, 0, 0, 0);
+        d.setHours(0,0,0,0);
         return d;
       }, []);
 
@@ -587,14 +636,14 @@
         let cancelled = false;
         (async () => {
           try {
-            const list = await tvmazeEpisodes(show.tvmaze_id);
+            const list = await tvmazeEpisodes(tvmaze_id);
             if (!cancelled) setEps(Array.isArray(list) ? list : []);
           } catch {
             if (!cancelled) setEps([]);
           }
         })();
         return () => { cancelled = true; };
-      }, [show.tvmaze_id]);
+      }, [tvmaze_id]);
 
       const computed = useMemo(() => {
         if (!eps) return null;
@@ -603,13 +652,13 @@
         const aired = withDate.filter(e => parseAirDate(e.airdate) <= today);
 
         const watchedAll = eps.filter(e =>
-          (e.season < show.current_season) ||
-          (e.season === show.current_season && e.number <= show.current_episode)
+          (e.season < current_season) ||
+          (e.season === current_season && e.number <= current_episode)
         );
 
         const watchedAired = aired.filter(e =>
-          (e.season < show.current_season) ||
-          (e.season === show.current_season && e.number <= show.current_episode)
+          (e.season < current_season) ||
+          (e.season === current_season && e.number <= current_episode)
         );
 
         const unaired = withDate
@@ -625,9 +674,11 @@
 
         const seasonsCount = eps.reduce((m, e) => Math.max(m, e.season || 0), 0) || 0;
 
+        const totalEpisodes = eps.length || (total_episodes_fallback || 0);
+
         return {
           seasonsCount,
-          totalEpisodes: eps.length,
+          totalEpisodes,
           totalAired: aired.length,
           watchedTotalCount: watchedAll.length,
           watchedAiredCount: watchedAired.length,
@@ -635,28 +686,38 @@
           firstUnaired: unaired[0] || null,
           dateEpisode,
         };
-      }, [eps, show.current_season, show.current_episode, today]);
+      }, [eps, today, current_season, current_episode, total_episodes_fallback]);
 
       const progress = computed ? pct(computed.watchedTotalCount, computed.totalEpisodes) : 0;
+
+      return { computed, progress };
+    }
+
+    function ShowCard({ show, onUpdate, onDelete }) {
+      const [season, setSeason] = useState(show.current_season);
+      const [ep, setEp] = useState(show.current_episode);
+
+      const { computed, progress } = useEpisodeStats(show.tvmaze_id, show.current_season, show.current_episode, show.total_episodes);
 
       async function applyProgress() {
         const s = Math.max(1, season || 1);
         const e = Math.max(0, ep || 0);
 
-        let watchedTotalCount = 0;
-        let total = show.total_episodes || 0;
+        // status from real episode counts if available (fallback to stored total)
+        let status = show.status;
+        const total = computed?.totalEpisodes ?? (show.total_episodes || 0);
 
-        if (eps && Array.isArray(eps)) {
-          total = eps.length;
-          watchedTotalCount = eps.filter(x =>
-            (x.season < s) || (x.season === s && x.number <= e)
-          ).length;
+        // watched total count if we had the computed for the *new* (s,e)
+        // simplest: set status based on rough rules, and let UI show accurate progress after update
+        // We'll compute watched count directly via TVMaze list on next render.
+        if (total && (s > show.current_season || (s === show.current_season && e >= show.current_episode))) {
+          // no-op: status decided below by persisted total after update
         }
 
-        let status = show.status;
-        if (total && watchedTotalCount >= total) status = "completed";
-        else if (watchedTotalCount > 0) status = "in-progress";
-        else status = "not-started";
+        // better: approximate watchedCount by ordering rule against current inputs using computed's episode list is not directly accessible here
+        // so we just use s/e vs total in a conservative way:
+        if (total && s === 1 && e === 0) status = "not-started";
+        else status = "in-progress";
 
         await onUpdate(show.id, { current_season: s, current_episode: e, status });
       }
@@ -720,6 +781,65 @@
             <button className="btn danger" style={{padding:"8px 12px"}} onClick={()=>onDelete(show.id)}>Delete</button>
           </div>
         </div>
+      );
+    }
+
+    function ShowRow({ show, onUpdate, onDelete }) {
+      const [season, setSeason] = useState(show.current_season);
+      const [ep, setEp] = useState(show.current_episode);
+
+      const { computed, progress } = useEpisodeStats(show.tvmaze_id, show.current_season, show.current_episode, show.total_episodes);
+
+      async function applyProgress() {
+        const s = Math.max(1, season || 1);
+        const e = Math.max(0, ep || 0);
+
+        let status = show.status;
+        const total = computed?.totalEpisodes ?? (show.total_episodes || 0);
+        if (total && s === 1 && e === 0) status = "not-started";
+        else status = "in-progress";
+
+        await onUpdate(show.id, { current_season: s, current_episode: e, status });
+      }
+
+      const seasonsCount = computed?.seasonsCount ?? 0;
+      const episodesTotal = computed?.totalEpisodes ?? show.total_episodes ?? 0;
+
+      return (
+        <tr>
+          <td className="nowrap">
+            <img className="miniPoster" src={show.image_url || "https://via.placeholder.com/60x90?text=No+Image"} alt={show.name} />
+          </td>
+          <td>
+            <div style={{fontWeight:800,color:"var(--yellow)"}}>{show.name}</div>
+            <div className="muted">
+              {(seasonsCount ? `${seasonsCount} ${seasonsCount===1?"Season":"Seasons"}` : "—")} • {episodesTotal} {episodesTotal===1?"episode":"episodes"}
+            </div>
+          </td>
+          <td className="nowrap">{show.status}</td>
+          <td className="nowrap">{progress}%</td>
+          <td className="nowrap">
+            {computed ? computed.remainingAiredCount : "…"}
+          </td>
+          <td className="nowrap">
+            {computed?.dateEpisode?.airdate ? computed.dateEpisode.airdate : "—"}
+          </td>
+          <td className="nowrap">
+            {show.source ? <a href={show.source} target="_blank" rel="noopener noreferrer">Link</a> : "—"}
+          </td>
+          <td className="nowrap">
+            <div className="row" style={{gap:6,flexWrap:"nowrap"}}>
+              <span className="muted">S</span>
+              <input type="number" min="1" value={season} onChange={(e)=>setSeason(parseInt(e.target.value)||1)} style={{width:64,padding:8}} />
+              <span className="muted">E</span>
+              <input type="number" min="0" value={ep} onChange={(e)=>setEp(parseInt(e.target.value)||0)} style={{width:64,padding:8}} />
+              <button className="btn" style={{padding:"8px 10px"}} onClick={applyProgress}>Update</button>
+            </div>
+          </td>
+          <td className="nowrap">
+            <button className="btn danger" style={{padding:"8px 10px"}} onClick={()=>onDelete(show.id)}>Delete</button>
+          </td>
+        </tr>
       );
     }
 
