@@ -5,7 +5,7 @@ I often watch multiple TV shows at the same time—some weekly, some slowly, som
 The goal was to keep it simple, fast, and private.
 
 <p align="center">
-  <img src="https://github.com/kcandost/tv-show-tracker/blob/main/ss.png?raw=true" alt="Screenshot" width="900" />
+  <img src="https://github.com/kcandost/media-tracker/blob/main/ss.png?raw=true" alt="Screenshot" width="900" />
 </p>
 
 
